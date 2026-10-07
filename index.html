@@ -97,6 +97,8 @@
     .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
     .btn-secondary { color: #374151; background: #eef0f3; }
     .btn-secondary:hover { background: #e2e5e9; }
+    .btn-link { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 9px 15px; color: #fff; background: var(--primary); border-radius: 7px; text-decoration: none; font-weight: 600; }
+    .btn-link:hover { background: var(--primary-hover); }
     .btn-danger { min-height: 34px; padding: 5px 10px; color: var(--danger); background: var(--danger-bg); }
 
     .section-head {
@@ -107,6 +109,8 @@
       margin-bottom: 16px;
     }
     .section-head h2 { margin: 0; }
+    .section-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .notice { padding: 13px 15px; margin-bottom: 16px; color: #374151; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; font-size: 14px; }
 
     .filter-bar {
       display: grid;
@@ -190,7 +194,8 @@
       .field-note, .submit-field, .summary-grid .summary-box:last-child { grid-column: auto; }
       .filter-action { grid-column: auto; }
       .section-head { align-items: flex-start; flex-direction: column; }
-      .section-head .btn-secondary { width: 100%; }
+      .section-actions { width: 100%; flex-direction: column; }
+      .section-actions > * { width: 100%; }
     }
   </style>
 </head>
@@ -199,12 +204,12 @@
     <header class="page-header">
       <div>
         <h1>达人BD工作量记录</h1>
-        <p class="subtitle">数据仅保存在当前浏览器中</p>
+        <p class="subtitle">正式工作量请在飞书群使用 #工作量 汇报</p>
       </div>
-      <button id="openSettings" class="btn-secondary" type="button">组员设置</button>
+      <button id="openSettings" class="btn-secondary" type="button" hidden>组员设置</button>
     </header>
 
-    <section class="card" aria-labelledby="entryTitle">
+    <section class="card" aria-labelledby="entryTitle" hidden>
       <h2 id="entryTitle">录入工作量</h2>
       <form id="entryForm" class="form-grid">
         <div>
@@ -236,9 +241,14 @@
 
     <section class="card" aria-labelledby="statsTitle">
       <div class="section-head">
-        <h2 id="statsTitle">统计列表与汇总</h2>
-        <button id="exportCsv" class="btn-secondary" type="button">导出全部记录为CSV</button>
+        <h2 id="statsTitle">本机历史记录（仅供参考）</h2>
+        <div class="section-actions">
+          <a class="btn-link" href="https://zcn9v9nbteej.feishu.cn/base/UiqNbNogQaSirdstH3KcvaTWnDf?table=tblSvjmVO3JWfAVk&view=vewsPxfNOE" target="_blank" rel="noopener noreferrer">打开飞书总库</a>
+          <button id="exportCsv" class="btn-secondary" type="button">导出本机全部记录</button>
+        </div>
       </div>
+
+      <div class="notice">网页录入已停用，避免与群聊汇报重复统计。以下内容仅展示当前浏览器曾经保存的历史记录；正式汇总以飞书总库为准。</div>
 
       <div class="filter-bar" aria-label="汇总筛选器">
         <div>
