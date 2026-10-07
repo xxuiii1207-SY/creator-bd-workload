@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>达人BD工作量记录</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      line-height: 1.5;
+    }
+
+    button, input, select { font: inherit; }
+
+    .container {
+      width: min(1100px, calc(100% - 32px));
+      margin: 32px auto 48px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 4px; font-size: 24px; }
+    h2 { margin-bottom: 18px; font-size: 18px; }
+    h3 { margin-bottom: 12px; font-size: 15px; }
+    .subtitle { margin-bottom: 0; color: var(--muted); font-size: 14px; }
+
+    .card {
+      padding: 22px;
+      margin-bottom: 18px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 0.7fr 1.8fr auto;
+      gap: 14px;
+      align-items: end;
+    }
+
+    label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
+
+    input, select {
+      width: 100%;
+      height: 42px;
+      padding: 8px 11px;
+      color: var(--text);
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    button {
+      min-height: 42px;
+      padding: 9px 15px;
+      border: 0;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { color: #fff; background: var(--primary); }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-secondary { color: #374151; background: #eef0f3; }
+    .btn-secondary:hover { background: #e2e5e9; }
+    .btn-danger { min-height: 34px; padding: 5px 10px; color: var(--danger); background: var(--danger-bg); }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .section-head h2 { margin: 0; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 0.7fr 1.3fr 1.3fr;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .summary-box {
+      min-height: 110px;
+      padding: 16px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .total-number { font-size: 30px; font-weight: 700; color: var(--primary); }
+    .stat-list { display: grid; gap: 7px; }
+    .stat-item { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; }
+    .stat-item span:last-child { font-weight: 700; }
+    .empty-text { color: var(--muted); font-size: 14px; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); font-size: 14px; }
+    th { color: #4b5563; background: #f8fafc; font-weight: 600; white-space: nowrap; }
+    tbody tr:last-child td { border-bottom: 0; }
+    td.time { white-space: nowrap; color: var(--muted); }
+    td.number { font-weight: 700; }
+    td.note { min-width: 170px; overflow-wrap: anywhere; }
+    .table-empty { padding: 30px 16px; text-align: center; color: var(--muted); }
+
+    dialog {
+      width: min(480px, calc(100% - 28px));
+      padding: 0;
+      border: 0;
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    }
+    dialog::backdrop { background: rgba(17, 24, 39, 0.45); }
+    .dialog-body { padding: 22px; }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .dialog-head h2 { margin: 0; }
+    .close-btn { min-height: 34px; padding: 4px 10px; color: #4b5563; background: transparent; font-size: 22px; }
+    .member-add { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin: 20px 0; }
+    .member-list { display: grid; gap: 8px; max-height: 300px; overflow-y: auto; }
+    .member-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: #f8fafc; border-radius: 7px; }
+    .hint { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 820px) {
+      .form-grid { grid-template-columns: 1fr 1fr; }
+      .field-note { grid-column: 1 / -1; }
+      .submit-field { grid-column: 1 / -1; }
+      .submit-field button { width: 100%; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .summary-grid .summary-box:last-child { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 560px) {
+      .container { width: min(100% - 20px, 1100px); margin-top: 18px; }
+      .page-header { align-items: flex-start; }
+      h1 { font-size: 21px; }
+      .card { padding: 16px; }
+      .form-grid, .summary-grid { grid-template-columns: 1fr; }
+      .field-note, .submit-field, .summary-grid .summary-box:last-child { grid-column: auto; }
+      .section-head { align-items: flex-start; flex-direction: column; }
+      .section-head .btn-secondary { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="page-header">
+      <div>
+        <h1>达人BD工作量记录</h1>
+        <p class="subtitle">数据仅保存在当前浏览器中</p>
+      </div>
+      <button id="openSettings" class="btn-secondary" type="button">组员设置</button>
+    </header>
+
+    <section class="card" aria-labelledby="entryTitle">
+      <h2 id="entryTitle">录入工作量</h2>
+      <form id="entryForm" class="form-grid">
+        <div>
+          <label for="operator">操作人</label>
+          <select id="operator" required></select>
+        </div>
+        <div>
+          <label for="workType">工作类型</label>
+          <select id="workType" required>
+            <option value="建联">建联</option>
+            <option value="发邀约">发邀约</option>
+            <option value="寄样">寄样</option>
+            <option value="发布">发布</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div>
+          <label for="quantity">数量</label>
+          <input id="quantity" type="number" min="1" step="1" value="1" required>
+        </div>
+        <div class="field-note">
+          <label for="note">备注（选填）</label>
+          <input id="note" type="text" maxlength="100" placeholder="最多100字">
+        </div>
+        <div class="submit-field">
+          <button id="submitButton" class="btn-primary" type="submit">提交保存</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="statsTitle">
+      <div class="section-head">
+        <h2 id="statsTitle">统计列表与汇总</h2>
+        <button id="exportCsv" class="btn-secondary" type="button">导出全部记录为CSV</button>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-box">
+          <h3>总条数</h3>
+          <div id="recordCount" class="total-number">0</div>
+        </div>
+        <div class="summary-box">
+          <h3>按操作人合计数量</h3>
+          <div id="personStats" class="stat-list"></div>
+        </div>
+        <div class="summary-box">
+          <h3>按工作类型合计数量</h3>
+          <div id="typeStats" class="stat-list"></div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>时间</th><th>操作人</th><th>工作类型</th><th>数量</th><th>备注</th><th>操作</th></tr>
+          </thead>
+          <tbody id="recordBody"></tbody>
+        </table>
+        <div id="tableEmpty" class="table-empty">暂无录入记录</div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog" aria-labelledby="settingsTitle">
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h2 id="settingsTitle">组员设置</h2>
+        <button id="closeSettings" class="close-btn" type="button" aria-label="关闭">×</button>
+      </div>
+      <form id="memberForm" class="member-add">
+        <input id="memberName" type="text" maxlength="20" placeholder="输入组员姓名" aria-label="组员姓名" required>
+        <button class="btn-primary" type="submit">新增组员</button>
+      </form>
+      <div id="memberList" class="member-list"></div>
+      <p class="hint">删除组员不会影响该组员已录入的历史记录。</p>
+    </div>
+  </dialog>
+
+  <script>
+    // 本工具仅使用浏览器本地存储，不会向网络发送数据。
+    const MEMBER_KEY = 'bd_workload_members_v1';
+    const RECORD_KEY = 'bd_workload_records_v1';
+    const WORK_TYPES = ['建联', '发邀约', '寄样', '发布', '其他'];
+
+    const $ = (id) => document.getElementById(id);
+    let members = loadData(MEMBER_KEY, []);
+    let records = loadData(RECORD_KEY, []);
+
+    function loadData(key, fallback) {
+      try {
+        const value = JSON.parse(localStorage.getItem(key));
+        return Array.isArray(value) ? value : fallback;
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function saveData(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    // 用 textContent 写入用户输入，避免把输入内容当作 HTML 执行。
+    function makeElement(tag, text, className) {
+      const element = document.createElement(tag);
+      if (text !== undefined) element.textContent = text;
+      if (className) element.className = className;
+      return element;
+    }
+
+    function renderOperatorOptions() {
+      const select = $('operator');
+      const previous = select.value;
+      select.replaceChildren();
+
+      if (!members.length) {
+        const option = new Option('请先在设置中新增组员', '');
+        option.disabled = true;
+        option.selected = true;
+        select.add(option);
+        $('submitButton').disabled = true;
+        return;
+      }
+
+      members.forEach((name) => select.add(new Option(name, name)));
+      if (members.includes(previous)) select.value = previous;
+      $('submitButton').disabled = false;
+    }
+
+    function renderMembers() {
+      const list = $('memberList');
+      list.replaceChildren();
+      if (!members.length) {
+        list.append(makeElement('div', '暂无组员，请先新增。', 'empty-text'));
+        return;
+      }
+
+      members.forEach((name) => {
+        const row = makeElement('div', undefined, 'member-row');
+        row.append(makeElement('span', name));
+        const button = makeElement('button', '删除', 'btn-danger');
+        button.type = 'button';
+        button.addEventListener('click', () => {
+          if (!confirm(`确定删除组员“${name}”吗？`)) return;
+          members = members.filter((member) => member !== name);
+          saveData(MEMBER_KEY, members);
+          renderMembers();
+          renderOperatorOptions();
+        });
+        row.append(button);
+        list.append(row);
+      });
+    }
+
+    function formatTime(timestamp) {
+      return new Intl.DateTimeFormat('zh-CN', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      }).format(new Date(timestamp)).replaceAll('/', '-');
+    }
+
+    function renderStatList(targetId, entries) {
+      const target = $(targetId);
+      target.replaceChildren();
+      if (!entries.length) {
+        target.append(makeElement('div', '暂无数据', 'empty-text'));
+        return;
+      }
+      entries.forEach(([name, total]) => {
+        const item = makeElement('div', undefined, 'stat-item');
+        item.append(makeElement('span', name), makeElement('span', String(total)));
+        target.append(item);
+      });
+    }
+
+    function renderRecords() {
+      $('recordCount').textContent = records.length;
+
+      const personTotals = {};
+      const typeTotals = {};
+      records.forEach((record) => {
+        personTotals[record.operator] = (personTotals[record.operator] || 0) + record.quantity;
+        typeTotals[record.workType] = (typeTotals[record.workType] || 0) + record.quantity;
+      });
+
+      renderStatList('personStats', Object.entries(personTotals).sort((a, b) => b[1] - a[1]));
+      renderStatList('typeStats', WORK_TYPES.filter((type) => typeTotals[type]).map((type) => [type, typeTotals[type]]));
+
+      const body = $('recordBody');
+      body.replaceChildren();
+      $('tableEmpty').hidden = records.length > 0;
+
+      records.forEach((record) => {
+        const row = document.createElement('tr');
+        row.append(
+          makeElement('td', formatTime(record.createdAt), 'time'),
+          makeElement('td', record.operator),
+          makeElement('td', record.workType),
+          makeElement('td', String(record.quantity), 'number'),
+          makeElement('td', record.note || '—', 'note')
+        );
+        const actionCell = document.createElement('td');
+        const deleteButton = makeElement('button', '删除', 'btn-danger');
+        deleteButton.type = 'button';
+        deleteButton.addEventListener('click', () => deleteRecord(record.id));
+        actionCell.append(deleteButton);
+        row.append(actionCell);
+        body.append(row);
+      });
+    }
+
+    function deleteRecord(id) {
+      if (!confirm('确定删除这条记录吗？删除后无法恢复。')) return;
+      records = records.filter((record) => record.id !== id);
+      saveData(RECORD_KEY, records);
+      renderRecords();
+    }
+
+    $('entryForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const operator = $('operator').value;
+      const quantity = Number($('quantity').value);
+      if (!operator || !Number.isInteger(quantity) || quantity < 1) return;
+
+      records.unshift({
+        id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        createdAt: new Date().toISOString(),
+        operator,
+        workType: $('workType').value,
+        quantity,
+        note: $('note').value.trim()
+      });
+      saveData(RECORD_KEY, records);
+
+      // 保留操作人，其他输入恢复默认值，方便连续录入。
+      $('workType').value = '建联';
+      $('quantity').value = '1';
+      $('note').value = '';
+      renderRecords();
+      $('workType').focus();
+    });
+
+    $('memberForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const name = $('memberName').value.trim();
+      if (!name) return;
+      if (members.includes(name)) {
+        alert('该组员已存在。');
+        return;
+      }
+      members.push(name);
+      saveData(MEMBER_KEY, members);
+      $('memberName').value = '';
+      renderMembers();
+      renderOperatorOptions();
+      $('memberName').focus();
+    });
+
+    $('openSettings').addEventListener('click', () => {
+      renderMembers();
+      $('settingsDialog').showModal();
+      $('memberName').focus();
+    });
+    $('closeSettings').addEventListener('click', () => $('settingsDialog').close());
+    $('settingsDialog').addEventListener('click', (event) => {
+      if (event.target === $('settingsDialog')) $('settingsDialog').close();
+    });
+
+    // CSV 字段转义，并防止表格软件将普通文本误识别为公式。
+    function csvCell(value) {
+      let text = String(value ?? '');
+      if (/^[=+\-@]/.test(text)) text = "'" + text;
+      return `"${text.replaceAll('"', '""')}"`;
+    }
+
+    $('exportCsv').addEventListener('click', () => {
+      if (!records.length) {
+        alert('暂无记录可导出。');
+        return;
+      }
+      const rows = [
+        ['时间', '操作人', '工作类型', '数量', '备注'],
+        ...records.map((record) => [formatTime(record.createdAt), record.operator, record.workType, record.quantity, record.note])
+      ];
+      const csv = '\uFEFF' + rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `达人BD工作量_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    renderOperatorOptions();
+    renderRecords();
+  </script>
+</body>
+</html>
