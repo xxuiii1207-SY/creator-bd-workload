@@ -108,6 +108,19 @@
     }
     .section-head h2 { margin: 0; }
 
+    .filter-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+      padding: 14px;
+      margin-bottom: 16px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .filter-bar label { font-size: 13px; }
+
     .summary-grid {
       display: grid;
       grid-template-columns: 0.7fr 1.3fr 1.3fr;
@@ -163,6 +176,9 @@
       .submit-field button { width: 100%; }
       .summary-grid { grid-template-columns: 1fr 1fr; }
       .summary-grid .summary-box:last-child { grid-column: 1 / -1; }
+      .filter-bar { grid-template-columns: 1fr 1fr; }
+      .filter-action { grid-column: 1 / -1; }
+      .filter-action button { width: 100%; }
     }
 
     @media (max-width: 560px) {
@@ -170,8 +186,9 @@
       .page-header { align-items: flex-start; }
       h1 { font-size: 21px; }
       .card { padding: 16px; }
-      .form-grid, .summary-grid { grid-template-columns: 1fr; }
+      .form-grid, .summary-grid, .filter-bar { grid-template-columns: 1fr; }
       .field-note, .submit-field, .summary-grid .summary-box:last-child { grid-column: auto; }
+      .filter-action { grid-column: auto; }
       .section-head { align-items: flex-start; flex-direction: column; }
       .section-head .btn-secondary { width: 100%; }
     }
@@ -221,6 +238,28 @@
       <div class="section-head">
         <h2 id="statsTitle">统计列表与汇总</h2>
         <button id="exportCsv" class="btn-secondary" type="button">导出全部记录为CSV</button>
+      </div>
+
+      <div class="filter-bar" aria-label="汇总筛选器">
+        <div>
+          <label for="filterStart">开始日期</label>
+          <input id="filterStart" type="date">
+        </div>
+        <div>
+          <label for="filterEnd">结束日期</label>
+          <input id="filterEnd" type="date">
+        </div>
+        <div>
+          <label for="filterOperator">操作人</label>
+          <select id="filterOperator"><option value="">全部人员</option></select>
+        </div>
+        <div>
+          <label for="filterType">工作类型</label>
+          <select id="filterType"><option value="">全部类型</option></select>
+        </div>
+        <div class="filter-action">
+          <button id="resetFilters" class="btn-secondary" type="button">重置筛选</button>
+        </div>
       </div>
 
       <div class="summary-grid">
@@ -334,6 +373,7 @@
           saveData(MEMBER_KEY, members);
           renderMembers();
           renderOperatorOptions();
+          renderFilterOptions();
         });
         row.append(button);
         list.append(row);
@@ -345,6 +385,43 @@
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
       }).format(new Date(timestamp)).replaceAll('/', '-');
+    }
+
+    function localDateKey(timestamp) {
+      const date = new Date(timestamp);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function renderFilterOptions() {
+      const operatorSelect = $('filterOperator');
+      const typeSelect = $('filterType');
+      const selectedOperator = operatorSelect.value;
+      const selectedType = typeSelect.value;
+      const operators = [...new Set([...members, ...records.map((record) => record.operator)])].filter(Boolean);
+      const types = [...WORK_TYPES, ...new Set(records.map((record) => record.workType).filter((type) => !WORK_TYPES.includes(type)))];
+
+      operatorSelect.replaceChildren(new Option('全部人员', ''));
+      operators.forEach((name) => operatorSelect.add(new Option(name, name)));
+      typeSelect.replaceChildren(new Option('全部类型', ''));
+      types.forEach((type) => typeSelect.add(new Option(type, type)));
+      if (operators.includes(selectedOperator)) operatorSelect.value = selectedOperator;
+      if (types.includes(selectedType)) typeSelect.value = selectedType;
+    }
+
+    function getFilteredRecords() {
+      const start = $('filterStart').value;
+      const end = $('filterEnd').value;
+      const operator = $('filterOperator').value;
+      const workType = $('filterType').value;
+      return records.filter((record) => {
+        const date = localDateKey(record.createdAt);
+        return (!start || date >= start) && (!end || date <= end) &&
+          (!operator || record.operator === operator) &&
+          (!workType || record.workType === workType);
+      });
     }
 
     function renderStatList(targetId, entries) {
@@ -362,11 +439,12 @@
     }
 
     function renderRecords() {
-      $('recordCount').textContent = records.length;
+      const filteredRecords = getFilteredRecords();
+      $('recordCount').textContent = filteredRecords.length;
 
       const personTotals = {};
       const typeTotals = {};
-      records.forEach((record) => {
+      filteredRecords.forEach((record) => {
         personTotals[record.operator] = (personTotals[record.operator] || 0) + (record.quantity || 0);
         typeTotals[record.workType] = (typeTotals[record.workType] || 0) + (record.quantity || 0);
       });
@@ -380,9 +458,10 @@
 
       const body = $('recordBody');
       body.replaceChildren();
-      $('tableEmpty').hidden = records.length > 0;
+      $('tableEmpty').hidden = filteredRecords.length > 0;
+      $('tableEmpty').textContent = records.length ? '暂无符合筛选条件的记录' : '暂无录入记录';
 
-      records.forEach((record) => {
+      filteredRecords.forEach((record) => {
         const row = document.createElement('tr');
         row.append(
           makeElement('td', formatTime(record.createdAt), 'time'),
@@ -405,6 +484,7 @@
       if (!confirm('确定删除这条记录吗？删除后无法恢复。')) return;
       records = records.filter((record) => record.id !== id);
       saveData(RECORD_KEY, records);
+      renderFilterOptions();
       renderRecords();
     }
 
@@ -439,6 +519,7 @@
         note: $('note').value.trim()
       });
       saveData(RECORD_KEY, records);
+      renderFilterOptions();
 
       // 保留操作人，其他输入恢复默认值，方便连续录入。
       $('workType').value = '邀约';
@@ -463,6 +544,7 @@
       $('memberName').value = '';
       renderMembers();
       renderOperatorOptions();
+      renderFilterOptions();
       $('memberName').focus();
     });
 
@@ -474,6 +556,17 @@
     $('closeSettings').addEventListener('click', () => $('settingsDialog').close());
     $('settingsDialog').addEventListener('click', (event) => {
       if (event.target === $('settingsDialog')) $('settingsDialog').close();
+    });
+
+    ['filterStart', 'filterEnd', 'filterOperator', 'filterType'].forEach((id) => {
+      $(id).addEventListener('change', renderRecords);
+    });
+    $('resetFilters').addEventListener('click', () => {
+      $('filterStart').value = '';
+      $('filterEnd').value = '';
+      $('filterOperator').value = '';
+      $('filterType').value = '';
+      renderRecords();
     });
 
     // CSV 字段转义，并防止表格软件将普通文本误识别为公式。
@@ -505,6 +598,7 @@
     });
 
     renderOperatorOptions();
+    renderFilterOptions();
     renderRecords();
   </script>
 </body>
