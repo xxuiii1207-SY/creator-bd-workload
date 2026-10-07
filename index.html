@@ -197,19 +197,18 @@
         <div>
           <label for="workType">工作类型</label>
           <select id="workType" required>
-            <option value="建联">建联</option>
-            <option value="发邀约">发邀约</option>
-            <option value="寄样">寄样</option>
-            <option value="发布">发布</option>
-            <option value="其他">其他</option>
+            <option value="邀约">邀约</option>
+            <option value="审核通过">审核通过</option>
+            <option value="分配跟进">分配跟进</option>
+            <option value="状态汇报">状态汇报</option>
           </select>
         </div>
         <div>
-          <label for="quantity">数量</label>
+          <label for="quantity">数量（状态汇报可选）</label>
           <input id="quantity" type="number" min="1" step="1" value="1" required>
         </div>
         <div class="field-note">
-          <label for="note">备注（选填）</label>
+          <label for="note">情况说明（选填）</label>
           <input id="note" type="text" maxlength="100" placeholder="最多100字">
         </div>
         <div class="submit-field">
@@ -242,7 +241,7 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>时间</th><th>操作人</th><th>工作类型</th><th>数量</th><th>备注</th><th>操作</th></tr>
+            <tr><th>时间</th><th>操作人</th><th>工作类型</th><th>数量</th><th>情况说明</th><th>操作</th></tr>
           </thead>
           <tbody id="recordBody"></tbody>
         </table>
@@ -270,7 +269,7 @@
     // 本工具仅使用浏览器本地存储，不会向网络发送数据。
     const MEMBER_KEY = 'bd_workload_members_v1';
     const RECORD_KEY = 'bd_workload_records_v1';
-    const WORK_TYPES = ['建联', '发邀约', '寄样', '发布', '其他'];
+    const WORK_TYPES = ['邀约', '审核通过', '分配跟进', '状态汇报'];
 
     const $ = (id) => document.getElementById(id);
     let members = loadData(MEMBER_KEY, []);
@@ -368,12 +367,16 @@
       const personTotals = {};
       const typeTotals = {};
       records.forEach((record) => {
-        personTotals[record.operator] = (personTotals[record.operator] || 0) + record.quantity;
-        typeTotals[record.workType] = (typeTotals[record.workType] || 0) + record.quantity;
+        personTotals[record.operator] = (personTotals[record.operator] || 0) + (record.quantity || 0);
+        typeTotals[record.workType] = (typeTotals[record.workType] || 0) + (record.quantity || 0);
       });
 
       renderStatList('personStats', Object.entries(personTotals).sort((a, b) => b[1] - a[1]));
-      renderStatList('typeStats', WORK_TYPES.filter((type) => typeTotals[type]).map((type) => [type, typeTotals[type]]));
+      const orderedTypes = [
+        ...WORK_TYPES.filter((type) => Object.hasOwn(typeTotals, type)),
+        ...Object.keys(typeTotals).filter((type) => !WORK_TYPES.includes(type))
+      ];
+      renderStatList('typeStats', orderedTypes.map((type) => [type, typeTotals[type]]));
 
       const body = $('recordBody');
       body.replaceChildren();
@@ -385,7 +388,7 @@
           makeElement('td', formatTime(record.createdAt), 'time'),
           makeElement('td', record.operator),
           makeElement('td', record.workType),
-          makeElement('td', String(record.quantity), 'number'),
+          makeElement('td', record.quantity == null ? '—' : String(record.quantity), 'number'),
           makeElement('td', record.note || '—', 'note')
         );
         const actionCell = document.createElement('td');
@@ -405,25 +408,43 @@
       renderRecords();
     }
 
+    // 状态汇报可以只写情况说明；其他工作类型必须填写数量。
+    $('workType').addEventListener('change', () => {
+      const optional = $('workType').value === '状态汇报';
+      $('quantity').required = !optional;
+      $('quantity').placeholder = optional ? '可不填' : '';
+      if (optional) {
+        $('quantity').value = '';
+      } else if ($('quantity').value === '') {
+        $('quantity').value = '1';
+      }
+    });
+
     $('entryForm').addEventListener('submit', (event) => {
       event.preventDefault();
       const operator = $('operator').value;
-      const quantity = Number($('quantity').value);
-      if (!operator || !Number.isInteger(quantity) || quantity < 1) return;
+      const workType = $('workType').value;
+      const quantityText = $('quantity').value.trim();
+      const quantity = quantityText === '' ? null : Number(quantityText);
+      const quantityIsOptional = workType === '状态汇报';
+      if (!operator || (!quantityIsOptional && quantity === null) ||
+          (quantity !== null && (!Number.isInteger(quantity) || quantity < 1))) return;
 
       records.unshift({
         id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
         createdAt: new Date().toISOString(),
         operator,
-        workType: $('workType').value,
+        workType,
         quantity,
         note: $('note').value.trim()
       });
       saveData(RECORD_KEY, records);
 
       // 保留操作人，其他输入恢复默认值，方便连续录入。
-      $('workType').value = '建联';
+      $('workType').value = '邀约';
       $('quantity').value = '1';
+      $('quantity').required = true;
+      $('quantity').placeholder = '';
       $('note').value = '';
       renderRecords();
       $('workType').focus();
@@ -468,7 +489,7 @@
         return;
       }
       const rows = [
-        ['时间', '操作人', '工作类型', '数量', '备注'],
+        ['时间', '操作人', '工作类型', '数量', '情况说明'],
         ...records.map((record) => [formatTime(record.createdAt), record.operator, record.workType, record.quantity, record.note])
       ];
       const csv = '\uFEFF' + rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
